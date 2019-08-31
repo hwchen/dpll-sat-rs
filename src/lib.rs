@@ -1,7 +1,7 @@
 type Literal = i32;
 type Clause = Vec<Literal>;
 
-pub fn dll(clauses: Vec<Clause>) -> (bool, Clause) {
+pub fn dpll(clauses: Vec<Clause>) -> (bool, Clause) {
     if clauses.is_empty() {
         return (true, vec![]);
     }
@@ -19,7 +19,7 @@ fn inner_dpll(solution: Clause, clauses: Vec<Clause>) -> (bool, Clause) {
     }
 
     if contains_atomic(clauses.clone()) {
-        let atom = get_atomic_clauses(clauses.clone()).pop().unwrap();
+        let atom = get_atomic_clauses(clauses.clone())[0];
         let mut atom_solution = vec![atom];
         atom_solution.extend_from_slice(&solution);
 
@@ -48,12 +48,9 @@ fn negate_literal(literal: Literal) -> Literal {
 }
 
 fn remove_literal(lit: Literal, clause: Vec<Literal>) -> Vec<Literal>{
-    let mut clause = clause.clone();
-    let idx = clause.iter().position(|l| *l == lit);
-    if let Some(idx) = idx {
-        clause.remove(idx as usize);
-    }
-    clause
+    clause.into_iter()
+        .filter(|l| *l != lit)
+        .collect()
 }
 
 fn get_atomic_clauses(clauses: Vec<Clause>) -> Clause {
@@ -71,7 +68,7 @@ fn reduce_clauses(lit: Literal, clauses: Vec<Clause>) -> Vec<Clause> {
     clauses.iter()
         // reduce_sat
         .filter(|clause| !clause.contains(&lit))
-        // reduce_un_sat TODO mutate
+        // reduce_un_sat TODO mutate?
         .map(|clause| {
             let not_lit = negate_literal(lit);
             remove_literal(not_lit, clause.clone())
@@ -81,8 +78,44 @@ fn reduce_clauses(lit: Literal, clauses: Vec<Clause>) -> Vec<Clause> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+    fn test_simple() {
+        let clauses = vec![
+            vec![1, 2, -3],
+            vec![-2, -1],
+        ];
+
+        let solution = dpll(clauses);
+
+        assert_eq!(solution, (true, vec![-3, -1]));
+    }
+
+    #[test]
+    fn test_remove_literal() {
+        assert_eq!(remove_literal(3, vec![3,1,2,3]), vec![1,2]);
+    }
+
+    #[test]
+    fn test_get_atomic_clauses() {
+        assert_eq!(get_atomic_clauses(vec![vec![1], vec![1,2]]), vec![1]);
+    }
+
+    #[test]
+    fn test_contains_atomic() {
+        assert_eq!(contains_atomic(vec![vec![1], vec![1,2]]), true);
+    }
+
+    #[test]
+    fn test_reduce_clauses() {
+        let empty_vec: Vec<Vec<_>> = Vec::new();
+        assert_eq!(reduce_clauses(1, vec![vec![1], vec![1,2,3]]), empty_vec);
+        assert_eq!(reduce_clauses(1, vec![vec![1], vec![2,3]]), vec![vec![2,3]]);
+        assert_eq!(reduce_clauses(2, vec![vec![1], vec![1,2]]), vec![vec![1]]);
+        assert_eq!(reduce_clauses(2, vec![vec![-2], vec![1,2,3]]), vec![vec![]]);
+        assert_eq!(reduce_clauses(2, vec![vec![-2,-1], vec![1,2,-3]]), vec![vec![-1]]);
+        assert_eq!(reduce_clauses(1, vec![vec![-2,-1], vec![1,2,-3]]), vec![vec![-2]]);
+        assert_eq!(reduce_clauses(-3, vec![vec![-2,-1], vec![1,2,-3]]), vec![vec![-2,-1]]);
     }
 }
