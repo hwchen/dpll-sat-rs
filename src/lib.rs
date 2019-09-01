@@ -83,18 +83,31 @@ mod tests {
 
     #[test]
     fn test_simple() {
-        //let clauses = vec![
-        //    vec![1, 2, -3],
-        //    vec![-2, -1],
-        //];
+        // order matters? ah, because the SAT solver will output _one_ viable solution,
+        // not all solutions
+
         let clauses = vec![
             vec![-1, -2],
             vec![-3, 2, 1],
         ];
-
         let solution = dpll(clauses);
-
         assert_eq!(solution, (true, vec![-3, -1]));
+
+        let clauses = vec![
+            vec![1, -5, 4],
+            vec![-1, 5, 3, 4],
+            vec![-3, -4],
+        ];
+        let solution = dpll(clauses);
+        assert_eq!(solution, (true, vec![-3, 5, 1]));
+
+        let clauses = vec![
+            vec![1],
+            vec![-2],
+            vec![3],
+        ];
+        let solution = dpll(clauses);
+        assert_eq!(solution, (true, vec![3, -2, 1]));
     }
 
     #[test]
