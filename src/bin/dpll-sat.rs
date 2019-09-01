@@ -8,9 +8,17 @@ fn main() {
     let data = std::fs::read_to_string(filepath).expect("error reading file");
 
     let cnf = data.lines()
+        .skip_while(|line| {
+            if let Some(c) = line.chars().nth(0) {
+                c == 'c' || c == 'p'
+            } else {
+                true // this skipe empty leading lines
+            }
+        })
         .map(|line| {
             line.split_whitespace()
                 .map(|s| s.parse::<i32>().expect("could not parse integer"))
+                .take_while(|x| *x != 0) // 0 is line ending in file format
                 .collect()
         })
         .collect();
