@@ -12,11 +12,11 @@ pub fn dpll(clauses: Vec<Clause>) -> Option<Clause> {
     let mut clauses = clauses;
 
     for atom in &solution {
-        clauses = reduce_clauses(*atom, &clauses);
+        reduce_clauses(*atom, &mut clauses);
     }
 
     // now the rest
-    let sat = inner_dpll(&mut solution, clauses);
+    let sat = inner_dpll(&mut solution, &mut clauses);
     if sat {
         Some(solution)
     } else {
@@ -24,7 +24,7 @@ pub fn dpll(clauses: Vec<Clause>) -> Option<Clause> {
     }
 }
 
-fn inner_dpll(solution: &mut Clause, clauses: Vec<Clause>) -> bool {
+fn inner_dpll(solution: &mut Clause, clauses: &mut Vec<Clause>) -> bool {
     if clauses.is_empty() {
         return true;
     }
@@ -36,7 +36,9 @@ fn inner_dpll(solution: &mut Clause, clauses: Vec<Clause>) -> bool {
     let lit = clauses[0][0]; // clauses should not be empty. This is checked above.
     solution.push(lit);
 
-    let red_pos = inner_dpll(solution, reduce_clauses(lit, &clauses));
+    let mut try_clauses = clauses.clone();
+    reduce_clauses(lit, &mut try_clauses);
+    let red_pos = inner_dpll(solution, &mut try_clauses);
 
     red_pos ||
     {
@@ -45,7 +47,8 @@ fn inner_dpll(solution: &mut Clause, clauses: Vec<Clause>) -> bool {
         solution.pop();
         solution.push(not_lit);
 
-        inner_dpll(solution, reduce_clauses(not_lit, &clauses))
+        reduce_clauses(not_lit, clauses);
+        inner_dpll(solution, clauses)
     } ||
     false
 }
@@ -54,11 +57,15 @@ fn negate_literal(literal: Literal) -> Literal {
     literal * -1
 }
 
-fn remove_literal(lit: Literal, clause: &[Literal]) -> Clause {
-    clause.iter()
-        .filter(|l| **l != lit)
-        .cloned()
-        .collect()
+fn remove_literal(lit: Literal, clause: &mut Clause) {
+    let idxs = clause.iter().enumerate()
+        .filter(|(_i, l)| **l ==lit)
+        .map(|(i, _)| i)
+        .collect::<Vec<_>>();
+
+    for idx in idxs.iter().rev() {
+        clause.remove(*idx);
+    }
 }
 
 fn get_atomic_clauses(clauses: &[Clause]) -> Vec<Literal> {
@@ -69,16 +76,20 @@ fn get_atomic_clauses(clauses: &[Clause]) -> Vec<Literal> {
         .collect()
 }
 
-fn reduce_clauses(lit: Literal, clauses: &[Clause]) -> Vec<Clause> {
-    clauses.iter()
-        // reduce_sat
-        .filter(|clause| !clause.contains(&lit))
-        // reduce_un_sat TODO mutate?
-        .map(|clause| {
+fn reduce_clauses(lit: Literal, clauses: &mut Vec<Clause>) {
+    let red_sat_idxs = clauses.iter().enumerate()
+        .filter(|(_i, clause)| clause.contains(&lit))
+        .map(|(i, _)| i)
+        .collect::<Vec<_>>();
+
+    for idx in red_sat_idxs.iter().rev() {
+        clauses.remove(*idx);
+    }
+
+    for clause in clauses.iter_mut() {
             let not_lit = negate_literal(lit);
-            remove_literal(not_lit, &clause)
-        })
-        .collect::<Vec<_>>()
+            remove_literal(not_lit, clause)
+    }
 }
 
 #[cfg(test)]
@@ -116,7 +127,9 @@ mod tests {
 
     #[test]
     fn test_remove_literal() {
-        assert_eq!(remove_literal(3, &[3,1,2,3]), vec![1,2]);
+        let mut clause = vec![3,1,2,3];
+        remove_literal(3, &mut clause);
+        assert_eq!(clause, vec![1,2]);
     }
 
     #[test]
@@ -127,12 +140,29 @@ mod tests {
     #[test]
     fn test_reduce_clauses() {
         let empty_vec: &[Vec<_>] = &[];
-        assert_eq!(reduce_clauses(1, &[vec![1], vec![1,2,3]]), empty_vec);
-        assert_eq!(reduce_clauses(1, &[vec![1], vec![2,3]]), &[vec![2,3]]);
-        assert_eq!(reduce_clauses(2, &[vec![1], vec![1,2]]), &[vec![1]]);
-        assert_eq!(reduce_clauses(2, &[vec![-2], vec![1,2,3]]), &[vec![]]);
-        assert_eq!(reduce_clauses(2, &[vec![-2,-1], vec![1,2,-3]]), &[vec![-1]]);
-        assert_eq!(reduce_clauses(1, &[vec![-2,-1], vec![1,2,-3]]), &[vec![-2]]);
-        assert_eq!(reduce_clauses(-3, &[vec![-2,-1], vec![1,2,-3]]), &[vec![-2,-1]]);
+
+        let mut clauses_0 = vec![vec![1], vec![1,2,3]];
+        let mut clauses_1 = vec![vec![1], vec![2,3]];
+        let mut clauses_2 = vec![vec![1], vec![1,2]];
+        let mut clauses_3 = vec![vec![-2], vec![1,2,3]];
+        let mut clauses_4 = vec![vec![-2,-1], vec![1,2,-3]];
+        let mut clauses_5 = vec![vec![-2,-1], vec![1,2,-3]];
+        let mut clauses_6 = vec![vec![-2,-1], vec![1,2,-3]];
+
+        reduce_clauses(1, &mut clauses_0);
+        reduce_clauses(1, &mut clauses_1);
+        reduce_clauses(2, &mut clauses_2);
+        reduce_clauses(2, &mut clauses_3);
+        reduce_clauses(2, &mut clauses_4);
+        reduce_clauses(1, &mut clauses_5);
+        reduce_clauses(-3, &mut clauses_6);
+
+        assert_eq!(clauses_0, empty_vec);
+        assert_eq!(clauses_1, &[vec![2,3]]);
+        assert_eq!(clauses_2, &[vec![1]]);
+        assert_eq!(clauses_3, &[vec![]]);
+        assert_eq!(clauses_4, &[vec![-1]]);
+        assert_eq!(clauses_5, &[vec![-2]]);
+        assert_eq!(clauses_6, &[vec![-2,-1]]);
     }
 }
