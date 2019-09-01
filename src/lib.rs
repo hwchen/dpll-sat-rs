@@ -18,8 +18,8 @@ fn inner_dpll(solution: Clause, clauses: Vec<Clause>) -> Option<Clause> {
         return None;
     }
 
-    if contains_atomic(clauses.clone()) {
-        let atom = get_atomic_clauses(clauses.clone())[0];
+    if contains_atomic(&clauses) {
+        let atom = get_atomic_clauses(&clauses)[0];
         let mut atom_solution = vec![atom];
         atom_solution.extend_from_slice(&solution);
 
@@ -54,15 +54,16 @@ fn remove_literal(lit: Literal, clause: Vec<Literal>) -> Vec<Literal>{
         .collect()
 }
 
-fn get_atomic_clauses(clauses: Vec<Clause>) -> Clause {
-    clauses.into_iter()
+fn get_atomic_clauses(clauses: &[Clause]) -> Clause {
+    clauses.iter()
         .filter(|clause| clause.len() == 1)
-        .flat_map(|clause| clause.into_iter())
+        .flat_map(|clause| clause.iter())
+        .cloned()
         .collect()
 }
 
-fn contains_atomic(clauses: Vec<Clause>) -> bool {
-    get_atomic_clauses(clauses).len() != 0
+fn contains_atomic(clauses: &[Clause]) -> bool {
+    get_atomic_clauses(&clauses).len() != 0
 }
 
 fn reduce_clauses(lit: Literal, clauses: Vec<Clause>) -> Vec<Clause> {
