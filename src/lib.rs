@@ -1,21 +1,21 @@
 type Literal = i32;
 type Clause = Vec<Literal>;
 
-pub fn dpll(clauses: Vec<Clause>) -> (bool, Clause) {
+pub fn dpll(clauses: Vec<Clause>) -> Option<Clause> {
     if clauses.is_empty() {
-        return (true, vec![]);
+        return Some(vec![]);
     }
 
     inner_dpll(vec![], clauses)
 }
 
-fn inner_dpll(solution: Clause, clauses: Vec<Clause>) -> (bool, Clause) {
+fn inner_dpll(solution: Clause, clauses: Vec<Clause>) -> Option<Clause> {
     if clauses.is_empty() {
-        return (true, solution);
+        return Some(solution);
     }
 
     if clauses.contains(&vec![]) {
-        return (false, solution);
+        return None;
     }
 
     if contains_atomic(clauses.clone()) {
@@ -39,9 +39,9 @@ fn inner_dpll(solution: Clause, clauses: Vec<Clause>) -> (bool, Clause) {
     // TODO do this one only if not red_pos.0
     let red_neg = inner_dpll(not_lit_solution, reduce_clauses(not_lit, clauses.clone()));
 
-    if red_pos.0 { red_pos }
-    else if red_neg.0 { red_neg }
-    else { (false, solution) }
+    if red_pos.is_some() { red_pos }
+    else if red_neg.is_some() { red_neg }
+    else { None }
 }
 
 fn negate_literal(literal: Literal) -> Literal {
