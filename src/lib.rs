@@ -7,42 +7,47 @@ pub fn dpll(clauses: Vec<Clause>) -> Option<Clause> {
     }
 
     // deal with atomic clauses first
-    let atomic_clauses = get_atomic_clauses(&clauses);
+    let mut solution = get_atomic_clauses(&clauses);
 
     let mut clauses = clauses;
 
-    for atom in &atomic_clauses {
+    for atom in &solution {
         clauses = reduce_clauses(*atom, &clauses);
     }
 
     // now the rest
-    inner_dpll(atomic_clauses, clauses)
+    let sat = inner_dpll(&mut solution, clauses);
+    if sat {
+        Some(solution)
+    } else {
+        None
+    }
 }
 
-fn inner_dpll(solution: Clause, clauses: Vec<Clause>) -> Option<Clause> {
+fn inner_dpll(solution: &mut Clause, clauses: Vec<Clause>) -> bool {
     if clauses.is_empty() {
-        return Some(solution);
+        return true;
     }
 
     if clauses.contains(&vec![]) {
-        return None;
+        return false;
     }
 
     let lit = clauses[0][0]; // clauses should not be empty. This is checked above.
-    let mut lit_solution = solution.clone();
-    lit_solution.push(lit);
+    solution.push(lit);
 
-    let red_pos = inner_dpll(lit_solution, reduce_clauses(lit, &clauses));
+    let red_pos = inner_dpll(solution, reduce_clauses(lit, &clauses));
 
-    red_pos.or_else(|| {
+    red_pos ||
+    {
         // red_neg
         let not_lit = negate_literal(lit);
-        let mut not_lit_solution = solution;
-        not_lit_solution.push(not_lit);
+        solution.pop();
+        solution.push(not_lit);
 
-        inner_dpll(not_lit_solution, reduce_clauses(not_lit, &clauses))
-    })
-    .or(None)
+        inner_dpll(solution, reduce_clauses(not_lit, &clauses))
+    } ||
+    false
 }
 
 fn negate_literal(literal: Literal) -> Literal {
