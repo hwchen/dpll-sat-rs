@@ -6,7 +6,17 @@ pub fn dpll(clauses: Vec<Clause>) -> Option<Clause> {
         return Some(vec![]);
     }
 
-    inner_dpll(vec![], clauses)
+    // deal with atomic clauses
+    let atomic_clauses = get_atomic_clauses(&clauses);
+
+    let mut clauses = clauses;
+
+    for atom in &atomic_clauses {
+        clauses = reduce_clauses(*atom, &clauses);
+    }
+
+
+    inner_dpll(atomic_clauses, clauses)
 }
 
 fn inner_dpll(solution: Clause, clauses: Vec<Clause>) -> Option<Clause> {
@@ -16,17 +26,6 @@ fn inner_dpll(solution: Clause, clauses: Vec<Clause>) -> Option<Clause> {
 
     if clauses.contains(&vec![]) {
         return None;
-    }
-
-    // deal with atomic clauses
-    let atomic_clauses = get_atomic_clauses(&clauses);
-
-    if atomic_clauses.len() != 0 {
-        let atom = atomic_clauses[0];
-        let mut atom_solution = vec![atom];
-        atom_solution.extend_from_slice(&solution);
-
-        return inner_dpll(atom_solution, reduce_clauses(atom, &clauses));
     }
 
     // otherwise
@@ -108,7 +107,7 @@ mod tests {
             vec![3],
         ];
         let solution = dpll(clauses);
-        assert_eq!(solution, Some(vec![3, -2, 1]));
+        assert_eq!(solution, Some(vec![1, -2, 3]));
     }
 
     #[test]
