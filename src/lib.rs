@@ -28,7 +28,7 @@ fn inner_dpll(solution: Clause, clauses: Vec<Clause>) -> Option<Clause> {
         return None;
     }
 
-    let lit = clauses.iter().nth(0).unwrap()[0]; // unwrap, no empty clauses
+    let lit = clauses[0][0]; // clauses should not be empty. This is checked above.
     let mut lit_solution = solution.clone();
     lit_solution.push(lit);
 
