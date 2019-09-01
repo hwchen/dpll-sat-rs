@@ -29,6 +29,7 @@ fn inner_dpll(solution: Clause, clauses: Vec<Clause>) -> (bool, Clause) {
     // otherwise
     let lit = clauses.iter().nth(0).unwrap()[0]; // unwrap, no empty clauses
     let not_lit = negate_literal(lit);
+
     let mut lit_solution = vec![lit];
     lit_solution.extend_from_slice(&solution);
     let mut not_lit_solution = vec![not_lit];
@@ -82,9 +83,13 @@ mod tests {
 
     #[test]
     fn test_simple() {
+        //let clauses = vec![
+        //    vec![1, 2, -3],
+        //    vec![-2, -1],
+        //];
         let clauses = vec![
-            vec![1, 2, -3],
-            vec![-2, -1],
+            vec![-1, -2],
+            vec![-3, 2, 1],
         ];
 
         let solution = dpll(clauses);
