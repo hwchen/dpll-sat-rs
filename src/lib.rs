@@ -6,7 +6,7 @@ pub fn dpll(clauses: Vec<Clause>) -> Option<Clause> {
         return Some(vec![]);
     }
 
-    // deal with atomic clauses
+    // deal with atomic clauses first
     let atomic_clauses = get_atomic_clauses(&clauses);
 
     let mut clauses = clauses;
@@ -15,7 +15,7 @@ pub fn dpll(clauses: Vec<Clause>) -> Option<Clause> {
         clauses = reduce_clauses(*atom, &clauses);
     }
 
-
+    // now the rest
     inner_dpll(atomic_clauses, clauses)
 }
 
@@ -28,22 +28,21 @@ fn inner_dpll(solution: Clause, clauses: Vec<Clause>) -> Option<Clause> {
         return None;
     }
 
-    // otherwise
     let lit = clauses.iter().nth(0).unwrap()[0]; // unwrap, no empty clauses
-    let not_lit = negate_literal(lit);
-
-    let mut lit_solution = vec![lit];
-    lit_solution.extend_from_slice(&solution);
-    let mut not_lit_solution = vec![not_lit];
-    not_lit_solution.extend_from_slice(&solution);
+    let mut lit_solution = solution.clone();
+    lit_solution.push(lit);
 
     let red_pos = inner_dpll(lit_solution, reduce_clauses(lit, &clauses));
-    // TODO do this one only if not red_pos.0
-    let red_neg = inner_dpll(not_lit_solution, reduce_clauses(not_lit, &clauses));
 
-    if red_pos.is_some() { red_pos }
-    else if red_neg.is_some() { red_neg }
-    else { None }
+    red_pos.or_else(|| {
+        // red_neg
+        let not_lit = negate_literal(lit);
+        let mut not_lit_solution = solution;
+        not_lit_solution.push(not_lit);
+
+        inner_dpll(not_lit_solution, reduce_clauses(not_lit, &clauses))
+    })
+    .or(None)
 }
 
 fn negate_literal(literal: Literal) -> Literal {
@@ -91,7 +90,7 @@ mod tests {
             vec![-3, 2, 1],
         ];
         let solution = dpll(clauses);
-        assert_eq!(solution, Some(vec![-3, -1]));
+        assert_eq!(solution, Some(vec![-1, -3]));
 
         let clauses = vec![
             vec![1, -5, 4],
@@ -99,7 +98,7 @@ mod tests {
             vec![-3, -4],
         ];
         let solution = dpll(clauses);
-        assert_eq!(solution, Some(vec![-3, 5, 1]));
+        assert_eq!(solution, Some(vec![1, 5, -3]));
 
         let clauses = vec![
             vec![1],
