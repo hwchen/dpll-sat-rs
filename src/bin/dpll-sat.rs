@@ -26,6 +26,6 @@ fn main() {
     let solution = dpll(cnf);
     let end = start.elapsed();
 
-    println!("{:?}, {}.{:06}", solution, end.as_secs(), end.subsec_micros());
+    println!("{:?}, {:?}, {}.{:06}", solution, solution.as_ref().map(|xs| xs.len()), end.as_secs(), end.subsec_micros());
 }
 

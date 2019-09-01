@@ -1,3 +1,6 @@
+// moving to mutable refs cuts time in half (on one set from 0.86 to 00.43.
+// But something seems odd in the solution.
+
 type Literal = i32;
 type Clause = Vec<Literal>;
 
@@ -40,6 +43,7 @@ fn inner_dpll(solution: &mut Clause, clauses: &mut Vec<Clause>) -> bool {
     reduce_clauses(lit, &mut try_clauses);
     let red_pos = inner_dpll(solution, &mut try_clauses);
 
+    // try one after another.
     red_pos ||
     {
         // red_neg
@@ -50,7 +54,10 @@ fn inner_dpll(solution: &mut Clause, clauses: &mut Vec<Clause>) -> bool {
         reduce_clauses(not_lit, clauses);
         inner_dpll(solution, clauses)
     } ||
-    false
+    {
+        solution.pop();
+        false
+    }
 }
 
 fn negate_literal(literal: Literal) -> Literal {
